@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare DApp - Registration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 50px;
+        }
+
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+        }
+
+        h1 {
+            color: #1a73e8;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        select {
+            background-color: white;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            background-color: #1557b0;
+        }
+
+        .btn.secondary {
+            background-color: #34a853;
+        }
+
+        .btn.secondary:hover {
+            background-color: #2d8a46;
+        }
+
+        #connectBtn {
+            background-color: #ff6b6b;
+            margin-bottom: 20px;
+        }
+
+        #connectBtn:hover {
+            background-color: #ff5252;
+        }
+
+        .login-buttons {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .login-btn {
+            flex: 1;
+            padding: 12px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .patient-login {
+            background-color: #fbbc05;
+        }
+
+        .doctor-login {
+            background-color: #ea4335;
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Healthcare DApp</h1>
+        
+        <button id="connectBtn" class="btn">Connect MetaMask</button>
+        
+        <div id="registerForm" class="hidden">
+            <div class="form-group">
+                <label for="userType">Register as:</label>
+                <select id="userType">
+                    <option value="patient">Patient</option>
+                    <option value="doctor">Doctor</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="name">Name:</label>
+                <input type="text" id="name" required>
+            </div>
+
+            <div id="specializationField" class="form-group hidden">
+                <label for="specialization">Specialization:</label>
+                <input type="text" id="specialization">
+            </div>
+
+            <button id="registerBtn" class="btn secondary">Register</button>
+        </div>
+
+        <div class="login-buttons">
+            <button onclick="window.location.href='patient.html'" class="login-btn patient-login">Patient Login</button>
+            <button onclick="window.location.href='doctor.html'" class="login-btn doctor-login">Doctor Login</button>
+        </div>
+
+        <p id="status" class="status"></p>
+    </div>
+
+    <script>
+        let account = null;
+        const connectBtn = document.getElementById('connectBtn');
+        const registerForm = document.getElementById('registerForm');
+        const userType = document.getElementById('userType');
+        const specializationField = document.getElementById('specializationField');
+        const statusText = document.getElementById('status');
+        const registerBtn = document.getElementById('registerBtn');
+
+        userType.addEventListener('change', () => {
+            specializationField.classList.toggle('hidden', userType.value !== 'doctor');
+        });
+
+        async function connectWallet() {
+            if (typeof window.ethereum === 'undefined') {
+                alert('Please install MetaMask!');
+                return;
+            }
+
+            try {
+                const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                account = accounts[0];
+                connectBtn.textContent = `Connected: ${account.substring(0, 6)}...${account.substring(38)}`;
+                registerForm.classList.remove('hidden');
+                statusText.textContent = 'Wallet connected successfully!';
+            } catch (error) {
+                console.error(error);
+                statusText.textContent = 'Failed to connect wallet.';
+            }
+        }
+
+        async function registerUser() {
+            const name = document.getElementById('name').value;
+            const address = account;
+            let userTypeValue = userType.value;
+
+            if (!name || !address) {
+                alert('Name and MetaMask address are required!');
+                return;
+            }
+
+            const data = { address, name };
+            alert(userTypeValue);
+            if (userTypeValue === 'doctor') {
+                const specialization = document.getElementById('specialization').value;
+                if (!specialization) {
+                    alert('Specialization is required for doctors!');
+                    return;
+                }
+                data.specialization = specialization;
+            }else{
+                userTypeValue = 'patient';
+            }
+            
+            
+            try {
+                const response = await fetch(`http://localhost:3000/api/${userTypeValue}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+
+                const result = await response.json();
+                console.log(result);
+
+                if (result.success) {
+                    statusText.textContent = `${userTypeValue.charAt(0).toUpperCase() + userTypeValue.slice(1)} registered successfully!`;
+                } else {
+                    statusText.textContent = `Error: ${result.error}`;
+                }
+            } catch (error) {
+                console.error(error);
+                statusText.textContent = 'Failed to register. Please try again.';
+            }
+        }
+
+        connectBtn.addEventListener('click', connectWallet);
+        registerBtn.addEventListener('click', registerUser);
+    </script>
+</body>
+</html>
